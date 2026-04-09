@@ -1,62 +1,78 @@
-# 🛡️ Intrusion Detection System (IDS)
+🛡️ A Novel Intrusion Detection System
 
-A hybrid deep learning-based Intrusion Detection System that combines **CNN-LSTM**, **Autoencoder**, and **XGBoost** to detect both known and unknown (zero-day) cyber attacks. The project also includes **SHAP explainability** for model transparency.
+This project presents a Novel Intrusion Detection System (IDS) that leverages advanced deep learning and machine learning techniques to identify and classify network attacks. The system is designed to improve detection accuracy and handle both known attacks and unknown (zero-day) threats efficiently.
 
----
+🚀 Overview
 
-## 🚀 Features
+Intrusion Detection Systems play a crucial role in cybersecurity by monitoring network traffic and identifying malicious activities. In this project, we propose a hybrid approach combining:
 
-- 🔍 Detects multiple types of cyber attacks  
-- 🧠 CNN-LSTM model for sequence-based classification  
-- ⚠️ Autoencoder for anomaly (zero-day) detection  
-- 📊 XGBoost as a baseline machine learning model  
-- 📈 SHAP for model explainability and feature importance  
+CNN-LSTM Model for capturing spatial and temporal patterns
+Autoencoder for anomaly detection
+XGBoost for baseline comparison
 
----
+This combination enhances the system’s ability to detect complex and evolving cyber threats.
 
-## 📂 Project Structure
+🔍 Key Features
+Detection of multiple network attack types
+Hybrid deep learning architecture (CNN + LSTM)
+Ability to detect unknown attacks using anomaly detection
+Improved accuracy and performance
+Scalable and efficient model design
 
+📂 Project Structure
 IDS_Project/
-├── data/
-├── notebooks/
-├── src/
-├── scripts/
-├── results/
-├── requirements.txt
+├── data/                # Dataset files
+├── notebooks/           # Kaggle / Jupyter notebooks
+├── src/                 # Source code
+├── scripts/             # Execution scripts
+├── results/             # Model outputs and results
+├── requirements.txt     # Dependencies
 └── README.md
 
----
+📊 Dataset
 
-## 📊 Dataset
+The model is trained using the CICIDS-2017 dataset, which contains realistic network traffic data.
 
-- **CICIDS-2017 Dataset**  
-- ~4 million records  
-- 80+ features  
-- Multiple attack categories  
+Large-scale dataset with millions of records
+Includes both normal and attack traffic
+Covers various attack categories such as DoS, DDoS, PortScan, etc.
 
-Download from:  
-https://www.unb.ca/cic/datasets/ids-2017.html  
+🔗 Dataset Link:
+https://www.unb.ca/cic/datasets/ids-2017.html
 
-
----
-
-## ⚙️ Setup
-
-```bash
+⚙️ Setup and Installation
 git clone https://github.com/YOUR_USERNAME/IDS_Project.git
 cd IDS_Project
 pip install -r requirements.txt
 
-▶️ Run
+▶️ Execution
 python scripts/preprocess.py
 python scripts/train_cnn_lstm.py
 python scripts/evaluate.py
 
-🛠️ Tech Stack
+🧠 Model Description
+CNN-LSTM Model
+Extracts important features from network data
+Captures sequential patterns in traffic behavior
+Autoencoder
+Learns normal traffic patterns
+Detects anomalies and zero-day attacks
+XGBoost
+Provides baseline comparison
+Ensures robustness of results
 
-Python, TensorFlow, Scikit-learn, XGBoost, SHAP
+📊 Results
+High accuracy in attack classification
+Effective detection of multiple attack categories
+Improved performance compared to traditional methods
 
-📊 Output
-Attack classification
-Anomaly detection
-Model performance metrics
+🛠️ Technologies Used
+Python
+TensorFlow / Keras
+Scikit-learn
+XGBoost
+Pandas, NumPy
+
+⭐ Final Note
+
+This project demonstrates how combining deep learning and machine learning techniques can significantly enhance intrusion detection systems, making them more robust against modern cyber threats.
