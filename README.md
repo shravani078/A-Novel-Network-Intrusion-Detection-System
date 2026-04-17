@@ -20,15 +20,20 @@ Improved accuracy and performance
 Scalable and efficient model design
 
 📂 Project Structure
-IDS_Project/
-├── data/                # Dataset files
-├── notebooks/           # Kaggle / Jupyter notebooks
-├── src/                 # Source code
-├── scripts/             # Execution scripts
-├── results/             # Model outputs and results
-├── requirements.txt     # Dependencies
-└── README.md
-
+IDS_WebApp/
+│
+├── app.py
+├── models/
+│   ├── best_cnn_lstm.h5
+│   ├── best_autoencoder.h5
+│   ├── xgboost_model.pkl
+│   ├── scaler.pkl
+│   └── label_encoder.pkl
+│
+├── templates/
+│   └── index.html
+│
+└── static/
 📊 Dataset
 
 The model is trained using the CICIDS-2017 dataset, which contains realistic network traffic data.
