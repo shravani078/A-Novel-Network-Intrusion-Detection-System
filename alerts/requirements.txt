@@ -1,0 +1,30 @@
+# ── ShieldAI Phase 1 Requirements ────────────────────────────────
+# Install with: pip install -r requirements.txt
+
+# Core framework
+flask>=3.0.0
+flask-socketio>=5.3.6
+python-socketio>=5.10.0
+python-engineio>=4.8.0
+
+# Models
+tensorflow>=2.15.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+joblib>=1.3.0
+
+# Data
+numpy>=1.26.0
+pandas>=2.1.0
+
+# Live packet capture
+scapy>=2.5.0
+
+# Alerts
+twilio>=8.0.0            # Optional — for SMS alerts
+
+# Environment
+python-dotenv>=1.0.0
+
+# Optional — for PyShark alternative to Scapy
+# pyshark>=0.6.0         # Requires Wireshark/tshark installed
