@@ -3,12 +3,14 @@
 A Novel Network Intrusion Detection System (NIDS) designed to analyze network traffic and identify malicious or abnormal network behavior using Machine Learning, Deep Learning, and Anomaly Detection techniques.
 
 The system combines a **CNN-LSTM model for network traffic classification**, an **Autoencoder for anomaly detection**, and **XGBoost as a machine learning baseline**. It also supports network-flow extraction, live traffic monitoring, and a Flask-based web interface.
+
 ---
 🎯 Project Objective
 
 The objective of **A Novel Network Intrusion Detection System** is to develop an intelligent network security solution that can automatically analyze network traffic and assist in identifying known attacks, malicious traffic patterns, and potentially abnormal or previously unseen network behavior.
 
 The proposed system combines supervised deep learning-based classification with Autoencoder-based anomaly detection to provide a more comprehensive approach to network intrusion detection.
+
 ---
 🔍 Key Features
 
