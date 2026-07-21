@@ -281,7 +281,7 @@ Open the local URL displayed in the terminal to access the application.
 > **Note:** Live network monitoring may require appropriate system permissions.
 ---
 
-## 🚀 Future Enhancements
+🚀 Future Enhancements
 
 - Integration with newer and larger cybersecurity datasets
 - Improved detection of unknown attacks
@@ -295,16 +295,18 @@ Open the local URL displayed in the terminal to access the application.
 - Distributed network monitoring
 
 ---
-## 🎓 Conclusion
+🎓 Conclusion
 
 This project demonstrates an AI-based approach to Network Intrusion Detection by combining **CNN-LSTM deep learning, Autoencoder-based anomaly detection, and XGBoost machine learning**.
 The system processes network traffic, extracts network-flow features, applies trained AI/ML models, and presents detection results through a web-based interface.
 The project provides a foundation for developing intelligent and scalable cybersecurity monitoring solutions capable of assisting in the identification of malicious and abnormal network behavior.
+
 ---
 👩‍💻 Author
 
 **K Shravani**
 Computer Science and Engineering Student
+
 ---
 📜 License
 
