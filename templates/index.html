@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ShieldAI — Real-Time Intrusion Detection</title>
+<!-- Socket.IO client -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+:root{
+  --bg:#040d1a;--bg2:#071224;--bg3:#0a1930;--bg4:#0d2040;
+  --accent:#00d4ff;--accent2:#7c3aed;--accent3:#06b6d4;
+  --green:#22c55e;--red:#ef4444;--orange:#f97316;--yellow:#eab308;--purple:#a855f7;
+  --text:#e2e8f0;--muted:#64748b;--border:#1e3a5f;--border2:#0f2545;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;}
+body{background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* NAV */
+nav{background:rgba(7,18,36,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border2);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.brand{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.brand span{color:var(--accent);}
+.ws-indicator{display:flex;align-items:center;gap:7px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);padding:5px 12px;border-radius:8px;font-size:12px;}
+.ws-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;}
+.ws-dot.off{background:var(--muted);animation:none;}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--green);}50%{opacity:.4;box-shadow:none;}}
+.ws-text{color:var(--green);font-weight:600;}
+.ws-text.off{color:var(--muted);}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:0 32px;background:var(--bg2);border-bottom:1px solid var(--border2);}
+.tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.tab.active,.tab:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* PANELS */
+.panel{display:none;padding:28px 32px;}
+.panel.active{display:block;}
+
+/* ── LIVE CAPTURE PANEL ──────────────────────────── */
+.capture-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+.cap-card{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;}
+.cap-card h3{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.cap-label{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.cap-select,.cap-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:9px;font-size:13px;margin-bottom:14px;outline:none;}
+.cap-select:focus,.cap-input:focus{border-color:var(--accent);}
+.cap-select option{background:var(--bg3);}
+.btn-row{display:flex;gap:10px;margin-top:4px;}
+.btn-start{background:linear-gradient(135deg,var(--green),#16a34a);color:#fff;border:none;padding:11px 24px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;flex:1;}
+.btn-start:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(34,197,94,.25);}
+.btn-stop{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:11px 24px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;flex:1;}
+.btn-stop:hover{background:rgba(239,68,68,.2);}
+.btn-stop:disabled,.btn-start:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* Stats bar */
+.live-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+.lstat{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center;}
+.lstat-n{font-size:30px;font-weight:900;line-height:1;margin-bottom:4px;}
+.lstat-l{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px;}
+
+/* Live feed */
+.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.feed-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.feed-clear{background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;transition:all .2s;}
+.feed-clear:hover{border-color:var(--accent);color:var(--accent);}
+#live-feed{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;height:380px;overflow-y:auto;padding:8px;}
+.feed-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:9px;margin-bottom:4px;animation:slideIn .25s ease;border:1px solid transparent;transition:border-color .2s;}
+.feed-item:hover{border-color:var(--border);}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+.fi-icon{font-size:20px;flex-shrink:0;}
+.fi-main{flex:1;min-width:0;}
+.fi-name{font-size:14px;font-weight:700;}
+.fi-meta{font-size:11px;color:var(--muted);}
+.fi-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;flex-shrink:0;}
+.fi-conf{font-size:12px;color:var(--muted);flex-shrink:0;min-width:48px;text-align:right;}
+.fi-time{font-size:11px;color:var(--muted);flex-shrink:0;}
+
+/* UPLOAD PANEL */
+.upload-box{background:var(--bg2);border:2px dashed var(--border);border-radius:20px;padding:52px 40px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:24px;}
+.upload-box:hover,.upload-box.drag{border-color:var(--accent);}
+.upload-icon{font-size:48px;margin-bottom:16px;}
+.upload-box h2{font-size:22px;font-weight:800;margin-bottom:8px;}
+.upload-box p{color:var(--muted);font-size:14px;margin-bottom:24px;}
+.btn-choose{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:12px 28px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;margin-right:10px;}
+.btn-scan{background:linear-gradient(135deg,var(--green),#16a34a);color:#fff;border:none;padding:12px 28px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;display:none;}
+#fileInput{display:none;}
+.file-info{display:none;margin-top:12px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);border-radius:9px;padding:9px 16px;font-size:13px;color:var(--accent);align-items:center;gap:8px;justify-content:center;}
+
+/* Results */
+.results-section{display:none;}
+.stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center;}
+.stat-n{font-size:34px;font-weight:900;margin-bottom:4px;}
+.stat-l{font-size:11px;color:var(--muted);font-weight:600;}
+.rcard{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;margin-bottom:10px;overflow:hidden;}
+.rcard-header{padding:16px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;}
+.rcard-icon{font-size:26px;}
+.rcard-name{font-size:16px;font-weight:800;}
+.rcard-desc{font-size:12px;color:var(--muted);}
+.rcard-right{margin-left:auto;display:flex;align-items:center;gap:14px;}
+.risk-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.conf-bar-wrap{width:100px;}
+.conf-top{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px;}
+.conf-bar{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.conf-fill{height:100%;border-radius:2px;}
+
+/* Loading */
+.loading{display:none;text-align:center;padding:60px 32px;}
+.spinner{width:56px;height:56px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Alert toast */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:10px;}
+.toast{background:var(--bg3);border:1px solid var(--red);border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;min-width:280px;max-width:380px;animation:toastIn .3s ease;box-shadow:0 4px 24px rgba(0,0,0,.4);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.toast.safe{border-color:var(--green);}
+.toast-icon{font-size:24px;flex-shrink:0;}
+.toast-body{flex:1;}
+.toast-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.toast-msg{font-size:12px;color:var(--muted);}
+.toast-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div class="brand"><span>Shield</span>AI <em style="font-size:13px;font-weight:500;color:var(--muted)">Phase 1</em></div>
+  </div>
+  <div class="ws-indicator" id="ws-indicator">
+    <div class="ws-dot off" id="ws-dot"></div>
+    <span class="ws-text off" id="ws-text">WebSocket connecting…</span>
+  </div>
+</nav>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('live')">🔴 Live Capture</div>
+  <div class="tab" onclick="switchTab('upload')">📂 CSV Upload</div>
+</div>
+
+<!-- ── LIVE CAPTURE PANEL ──────────────────────────────────────── -->
+<div id="panel-live" class="panel active">
+
+  <div class="capture-grid">
+    <!-- Capture settings card -->
+    <div class="cap-card">
+      <h3>⚙️ Capture Settings</h3>
+      <div class="cap-label">Network Interface</div>
+      <select class="cap-select" id="iface-select">
+        <option value="">Loading interfaces…</option>
+      </select>
+      <div class="cap-label">Window Size (seconds)</div>
+      <input type="number" class="cap-input" id="window-input" value="5" min="2" max="30">
+      <div class="btn-row">
+        <button class="btn-start" id="btn-start" onclick="startCapture()">▶ Start Live Capture</button>
+        <button class="btn-stop" id="btn-stop" onclick="stopCapture()" disabled>⏹ Stop</button>
+      </div>
+    </div>
+
+    <!-- Status card -->
+    <div class="cap-card">
+      <h3>📊 Capture Status</h3>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)">
+          <span style="font-size:13px;color:var(--muted)">Status</span>
+          <span id="cap-status-text" style="font-size:13px;font-weight:700;color:var(--muted)">Idle</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)">
+          <span style="font-size:13px;color:var(--muted)">Interface</span>
+          <span id="cap-iface-text" style="font-size:13px;font-weight:600;color:var(--text)">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)">
+          <span style="font-size:13px;color:var(--muted)">Flows analyzed</span>
+          <span id="cap-flows-text" style="font-size:13px;font-weight:600;color:var(--accent)">0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+          <span style="font-size:13px;color:var(--muted)">Threats found</span>
+          <span id="cap-threats-text" style="font-size:13px;font-weight:600;color:var(--red)">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live stats -->
+  <div class="live-stats">
+    <div class="lstat"><div class="lstat-n" id="ls-total" style="color:var(--accent)">0</div><div class="lstat-l">Total Flows</div></div>
+    <div class="lstat"><div class="lstat-n" id="ls-safe"  style="color:var(--green)">0</div><div class="lstat-l">Safe</div></div>
+    <div class="lstat"><div class="lstat-n" id="ls-atk"   style="color:var(--orange)">0</div><div class="lstat-l">Attacks</div></div>
+    <div class="lstat"><div class="lstat-n" id="ls-crit"  style="color:var(--red)">0</div><div class="lstat-l">Critical</div></div>
+    <div class="lstat"><div class="lstat-n" id="ls-unk"   style="color:var(--purple)">0</div><div class="lstat-l">Unknown</div></div>
+  </div>
+
+  <!-- Live detection feed -->
+  <div class="feed-header">
+    <div class="feed-title">🔴 Live Detection Feed <span id="feed-count" style="font-size:12px;color:var(--muted);font-weight:500">(0 events)</span></div>
+    <button class="feed-clear" onclick="clearFeed()">Clear feed</button>
+  </div>
+  <div id="live-feed"><div style="text-align:center;padding:60px;color:var(--muted);font-size:13px">Start live capture to see real-time detections here…</div></div>
+</div>
+
+<!-- ── CSV UPLOAD PANEL ────────────────────────────────────────── -->
+<div id="panel-upload" class="panel">
+
+  <div class="upload-box" id="drop-zone"
+       ondragover="event.preventDefault();this.classList.add('drag')"
+       ondragleave="this.classList.remove('drag')"
+       ondrop="onDrop(event)">
+    <div class="upload-icon">☁️</div>
+    <h2>Upload Network Traffic CSV</h2>
+    <p>Drag & drop your CICFlowMeter CSV file here, or click to choose</p>
+    <button class="btn-choose" onclick="document.getElementById('fileInput').click()">📂 Choose File</button>
+    <button class="btn-scan" id="btn-scan" onclick="runScan()">🔍 Scan for Threats</button>
+    <input type="file" id="fileInput" accept=".csv" onchange="onFileChange(this)">
+    <div class="file-info" id="file-info">📄 <span id="file-name"></span></div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <h3>Analyzing traffic…</h3>
+    <p style="color:var(--muted);margin-top:8px">CNN-LSTM + Autoencoder + XGBoost ensemble running</p>
+  </div>
+
+  <div class="results-section" id="results-section">
+    <div class="stats-row" id="stats-row"></div>
+    <div id="results-list"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── WebSocket connection ───────────────────────────────────────
+const socket = io();
+let liveStats = {total:0, safe:0, atk:0, crit:0, unk:0, flows:0, threats:0};
+let feedCount = 0;
+let allResults = [];
+
+socket.on('connect', () => {
+  setWsStatus(true);
+});
+socket.on('disconnect', () => {
+  setWsStatus(false);
+  document.getElementById('cap-status-text').textContent = 'Disconnected';
+  document.getElementById('cap-status-text').style.color = 'var(--red)';
+});
+
+socket.on('capture_status', data => {
+  if(data.status === 'started'){
+    document.getElementById('cap-status-text').textContent = '🔴 Capturing';
+    document.getElementById('cap-status-text').style.color = 'var(--green)';
+    document.getElementById('cap-iface-text').textContent = data.interface;
+  } else if(data.status === 'stopped'){
+    document.getElementById('cap-status-text').textContent = 'Stopped';
+    document.getElementById('cap-status-text').style.color = 'var(--muted)';
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-stop').disabled  = true;
+  }
+});
+
+socket.on('capture_error', data => {
+  showToast('Capture Error', data.error, '#ef4444', '❌');
+});
+
+// ── Real-time detection event ─────────────────────────────────
+socket.on('detection', result => {
+  addToFeed(result);
+  updateLiveStats(result);
+  if(result.risk >= 70 && result.attack !== 'BENIGN'){
+    showToast(
+      `${result.icon} ${result.attack} Detected`,
+      `Risk: ${result.risk}/100 · Confidence: ${result.confidence}%`,
+      result.color,
+      result.icon
+    );
+  }
+});
+
+function setWsStatus(connected){
+  const dot  = document.getElementById('ws-dot');
+  const text = document.getElementById('ws-text');
+  if(connected){
+    dot.classList.remove('off');
+    text.classList.remove('off');
+    text.textContent = 'WebSocket connected';
+  } else {
+    dot.classList.add('off');
+    text.classList.add('off');
+    text.textContent = 'WebSocket disconnected';
+  }
+}
+
+// ── Live feed ─────────────────────────────────────────────────
+function addToFeed(r){
+  const feed = document.getElementById('live-feed');
+  // Remove placeholder
+  const placeholder = feed.querySelector('div');
+  if(placeholder && placeholder.style.textAlign === 'center') placeholder.remove();
+
+  feedCount++;
+  document.getElementById('feed-count').textContent = `(${feedCount} events)`;
+
+  const isBenign = r.attack === 'BENIGN';
+  const bg = isBenign ? 'rgba(34,197,94,0.04)' : `${r.color}10`;
+
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.style.background = bg;
+  item.innerHTML = `
+    <div class="fi-icon">${r.icon || '⚠️'}</div>
+    <div class="fi-main">
+      <div class="fi-name" style="color:${r.color}">${r.attack}</div>
+      <div class="fi-meta">Risk ${r.risk}/100 · Anomaly: ${r.anomaly_score}</div>
+    </div>
+    <div class="fi-badge" style="background:${r.color}20;color:${r.color}">${r.risk_label}</div>
+    <div class="fi-conf">${r.confidence}%</div>
+    <div class="fi-time">${r.timestamp}</div>
+  `;
+  feed.prepend(item);
+
+  // Keep only last 200 items
+  const items = feed.querySelectorAll('.feed-item');
+  if(items.length > 200) items[items.length-1].remove();
+}
+
+function updateLiveStats(r){
+  liveStats.total++;
+  liveStats.flows++;
+  if(r.attack === 'BENIGN')        liveStats.safe++;
+  else {
+    liveStats.atk++;
+    liveStats.threats++;
+    if(r.risk >= 90) liveStats.crit++;
+    if(r.attack === 'UNKNOWN') liveStats.unk++;
+  }
+  document.getElementById('ls-total').textContent = liveStats.total;
+  document.getElementById('ls-safe').textContent  = liveStats.safe;
+  document.getElementById('ls-atk').textContent   = liveStats.atk;
+  document.getElementById('ls-crit').textContent  = liveStats.crit;
+  document.getElementById('ls-unk').textContent   = liveStats.unk;
+  document.getElementById('cap-flows-text').textContent   = liveStats.flows;
+  document.getElementById('cap-threats-text').textContent = liveStats.threats;
+}
+
+function clearFeed(){
+  feedCount = 0;
+  document.getElementById('feed-count').textContent = '(0 events)';
+  document.getElementById('live-feed').innerHTML =
+    '<div style="text-align:center;padding:60px;color:var(--muted);font-size:13px">Feed cleared.</div>';
+}
+
+// ── Capture controls ──────────────────────────────────────────
+async function loadInterfaces(){
+  try {
+    const r = await fetch('/interfaces');
+    const d = await r.json();
+    const sel = document.getElementById('iface-select');
+    sel.innerHTML = d.interfaces.map(i => `<option value="${i}">${i}</option>`).join('');
+  } catch(e){ /* keep default */ }
+}
+loadInterfaces();
+
+async function startCapture(){
+  const iface  = document.getElementById('iface-select').value;
+  const window_ = parseInt(document.getElementById('window-input').value) || 5;
+  if(!iface){ showToast('Error','Please select a network interface','#ef4444','❌'); return; }
+
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-stop').disabled  = false;
+  liveStats = {total:0,safe:0,atk:0,crit:0,unk:0,flows:0,threats:0};
+
+  await fetch('/capture/start', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({interface: iface, window_seconds: window_})
+  });
+}
+
+async function stopCapture(){
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-stop').disabled  = true;
+  await fetch('/capture/stop', {method:'POST'});
+}
+
+// ── CSV Upload ────────────────────────────────────────────────
+let selectedFile = null;
+
+function onFileChange(input){
+  if(input.files[0]){
+    selectedFile = input.files[0];
+    document.getElementById('file-name').textContent = input.files[0].name;
+    document.getElementById('file-info').style.display = 'flex';
+    document.getElementById('btn-scan').style.display  = 'inline-flex';
+  }
+}
+
+function onDrop(event){
+  event.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  const file = event.dataTransfer.files[0];
+  if(file && file.name.endsWith('.csv')){
+    selectedFile = file;
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-info').style.display = 'flex';
+    document.getElementById('btn-scan').style.display  = 'inline-flex';
+  }
+}
+
+async function runScan(){
+  if(!selectedFile) return;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results-section').style.display = 'none';
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+  try {
+    const res  = await fetch('/predict', {method:'POST', body:form});
+    const data = await res.json();
+    if(data.error){ alert('Error: ' + data.error); return; }
+    renderUploadResults(data);
+  } catch(e){ alert('Request failed: '+e); }
+  finally { document.getElementById('loading').style.display = 'none'; }
+}
+
+function renderUploadResults(data){
+  const s = data.summary;
+  const riskColor = s.threat_level === 'CRITICAL' ? 'var(--red)' :
+                    s.threat_level === 'HIGH'     ? 'var(--orange)' :
+                    s.threat_level === 'MEDIUM'   ? 'var(--yellow)' : 'var(--green)';
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-n" style="color:var(--accent)">${s.total}</div><div class="stat-l">Total Flows</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--green)">${s.normal}</div><div class="stat-l">Safe</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--red)">${s.attacks}</div><div class="stat-l">Attacks</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--red)">${s.critical}</div><div class="stat-l">Critical</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--purple)">${s.unknown}</div><div class="stat-l">Unknown</div></div>
+    <div class="stat"><div class="stat-n" style="color:${riskColor}">${s.threat_level}</div><div class="stat-l">Threat Level</div></div>
+  `;
+  document.getElementById('results-list').innerHTML = data.results.map((r,i) => {
+    const rc = r.confidence > 80 ? 'var(--green)' : r.confidence > 50 ? 'var(--yellow)' : 'var(--red)';
+    return `
+    <div class="rcard">
+      <div class="rcard-header">
+        <div class="rcard-icon">${r.icon}</div>
+        <div>
+          <div class="rcard-name" style="color:${r.color}">${r.attack}</div>
+          <div class="rcard-desc">${r.what_it_does ? r.what_it_does.substring(0,80)+'…' : ''}</div>
+        </div>
+        <div class="rcard-right">
+          <div class="conf-bar-wrap">
+            <div class="conf-top"><span>Confidence</span><span style="color:${rc}">${r.confidence}%</span></div>
+            <div class="conf-bar"><div class="conf-fill" style="width:${r.confidence}%;background:${rc}"></div></div>
+          </div>
+          <div class="risk-badge" style="background:${r.badge_bg||r.color+'20'};color:${r.badge_color||r.color}">${r.risk_label}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('results-section').style.display = 'block';
+}
+
+// ── Toast notifications ───────────────────────────────────────
+function showToast(title, msg, color, icon){
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.borderColor = color;
+  t.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div class="toast-body">
+      <div class="toast-title" style="color:${color}">${title}</div>
+      <div class="toast-msg">${msg}</div>
+    </div>
+    <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>
+  `;
+  c.prepend(t);
+  setTimeout(() => t.remove(), 7000);
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
